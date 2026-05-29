@@ -10,11 +10,47 @@ const firebaseConfig = {
   appId: "1:483858402515:web:15faecde56d7bd9a341826"
 };
 
+const ADMIN_PIN = "1166";
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
-
 let records = [];
+let pinVerified = false;
+let pendingAction = null;
 
+// ===== PIN MODAL =====
+function showPinModal(action) {
+  pendingAction = action;
+  pinVerified = false;
+  document.getElementById("pin-input").value = "";
+  document.getElementById("pin-error").style.display = "none";
+  document.getElementById("pin-modal").classList.add("open");
+  setTimeout(() => document.getElementById("pin-input").focus(), 100);
+}
+
+window.closePinModal = function() {
+  document.getElementById("pin-modal").classList.remove("open");
+  pendingAction = null;
+};
+
+window.submitPin = function() {
+  const val = document.getElementById("pin-input").value;
+  if (val === ADMIN_PIN) {
+    pinVerified = true;
+    document.getElementById("pin-modal").classList.remove("open");
+    if (pendingAction) pendingAction();
+    pendingAction = null;
+  } else {
+    document.getElementById("pin-error").style.display = "block";
+    document.getElementById("pin-input").value = "";
+    document.getElementById("pin-input").focus();
+  }
+};
+
+window.pinKeydown = function(e) {
+  if (e.key === "Enter") window.submitPin();
+};
+
+// ===== REALTIME =====
 function startListener() {
   const q = query(collection(db, "samples"), orderBy("createdAt", "desc"));
   onSnapshot(q, (snapshot) => {
@@ -34,16 +70,17 @@ function setSync(ok) {
   txt.textContent = ok ? "เชื่อมต่อแล้ว — ข้อมูลแชร์ร่วมกัน" : "ขาดการเชื่อมต่อ";
 }
 
+// ===== TABS =====
 window.switchTab = function(id) {
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === id));
   document.querySelectorAll(".pane").forEach(p => p.classList.toggle("active", p.id === "pane-" + id));
   if (id === "history") renderList();
 };
 
+// ===== PHOTO PREVIEW =====
 window.previewPhoto = function(input, boxId, dataId) {
   const file = input.files[0];
   if (!file) return;
-  // Resize image before storing
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
@@ -67,6 +104,7 @@ window.previewPhoto = function(input, boxId, dataId) {
   reader.readAsDataURL(file);
 };
 
+// ===== SAVE =====
 window.saveRecord = async function() {
   const date = document.getElementById("f-date").value;
   const code = document.getElementById("f-code").value.trim();
@@ -87,7 +125,6 @@ window.saveRecord = async function() {
     toast("บันทึกสำเร็จ ✓");
     clearForm();
   } catch (err) {
-    console.error(err);
     toast("เกิดข้อผิดพลาด: " + err.message);
   } finally {
     btn.textContent = "💾 บันทึก";
@@ -95,6 +132,7 @@ window.saveRecord = async function() {
   }
 };
 
+// ===== CLEAR FORM =====
 window.clearForm = function() {
   ["f-date","f-code","f-batch","f-name","d1","d2","d3"].forEach(id => document.getElementById(id).value = "");
   for (let n = 1; n <= 3; n++) {
@@ -104,6 +142,7 @@ window.clearForm = function() {
   }
 };
 
+// ===== RENDER LIST =====
 window.renderList = function() {
   const q = (document.getElementById("sq")?.value || "").toLowerCase();
   const d = document.getElementById("sd")?.value || "";
@@ -133,23 +172,26 @@ window.renderList = function() {
             ${r.photos?.length ? `<span class="badge">🖼 ${r.photos.length} รูป</span>` : ""}
           </div>
         </div>
-        <button class="btn-del" onclick="delRecord('${r.id}')">🗑</button>
+        <button class="btn-del" onclick="confirmDelete('${r.id}')" aria-label="ลบ">🗑</button>
       </div>
       ${r.photos?.length ? `<div class="rec-photos">${r.photos.map(p => `<img src="${p}" alt="photo" onclick="openLightbox('${p}')">`).join("")}</div>` : ""}
     </div>
   `).join("");
 };
 
-window.delRecord = async function(id) {
-  if (!confirm("ยืนยันลบรายการนี้?")) return;
-  try {
-    await deleteDoc(doc(db, "samples", id));
-    toast("ลบเรียบร้อย");
-  } catch (err) {
-    toast("เกิดข้อผิดพลาด");
-  }
+// ===== DELETE WITH PIN =====
+window.confirmDelete = function(id) {
+  showPinModal(async () => {
+    try {
+      await deleteDoc(doc(db, "samples", id));
+      toast("ลบเรียบร้อย");
+    } catch (err) {
+      toast("เกิดข้อผิดพลาด");
+    }
+  });
 };
 
+// ===== EXPORT =====
 window.doExport = async function() {
   const q = (document.getElementById("sq")?.value || "").toLowerCase();
   const d = document.getElementById("sd")?.value || "";
@@ -176,6 +218,7 @@ window.doExport = async function() {
   toast("Export สำเร็จ ✓");
 };
 
+// ===== LIGHTBOX =====
 window.openLightbox = function(src) {
   document.getElementById("lb-img").src = src;
   document.getElementById("lightbox").classList.add("open");

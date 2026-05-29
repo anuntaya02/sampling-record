@@ -119,3 +119,15 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 /* TOAST */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; white-space: nowrap; }
 .toast.show { opacity: 1; }
+
+/* PIN MODAL */
+.pin-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; align-items:center; justify-content:center; padding:20px; }
+.pin-overlay.open { display:flex; }
+.pin-box { background:var(--surface); border-radius:var(--radius); padding:28px 24px; width:100%; max-width:320px; text-align:center; }
+.pin-icon { font-size:32px; margin-bottom:10px; }
+.pin-title { font-size:15px; font-weight:500; margin-bottom:16px; }
+.pin-input { width:100%; padding:11px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:20px; text-align:center; letter-spacing:6px; background:var(--bg); color:var(--text); outline:none; margin-bottom:8px; }
+.pin-input:focus { border-color:var(--blue); }
+.pin-error { color:var(--red); font-size:12px; margin-bottom:12px; display:none; }
+.pin-btns { display:flex; gap:10px; }
+.pin-btns button { flex:1; }

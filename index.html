@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#2563eb" />
   <title>Sampling Record</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
@@ -12,7 +12,7 @@
 
 <div class="app">
   <header class="header">
-    <span class="header-title">Sampling Record</span>
+    <span class="header-title">🧪 Sampling Record</span>
     <span class="sync-badge" id="sync-badge">
       <span class="dot" id="sync-dot"></span>
       <span id="sync-txt">กำลังเชื่อมต่อ...</span>
@@ -101,6 +101,20 @@
       <button class="btn-outline full-w" onclick="doExport()">📥 Export Excel</button>
     </div>
     <div id="list-container"></div>
+  </div>
+</div>
+
+<!-- PIN MODAL -->
+<div class="pin-overlay" id="pin-modal">
+  <div class="pin-box">
+    <div class="pin-icon">🔒</div>
+    <div class="pin-title">ใส่รหัสผ่านก่อนดำเนินการ</div>
+    <input type="password" id="pin-input" class="pin-input" placeholder="รหัสผ่าน" maxlength="10" onkeydown="pinKeydown(event)" inputmode="numeric" />
+    <div class="pin-error" id="pin-error">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่</div>
+    <div class="pin-btns">
+      <button class="btn-outline" onclick="closePinModal()">ยกเลิก</button>
+      <button class="btn-primary" onclick="submitPin()">ยืนยัน</button>
+    </div>
   </div>
 </div>
 
