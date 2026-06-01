@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#2563eb" />
-  <title>Sampling Record</title>
+  <title>QAP Sampling Record</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -12,8 +12,15 @@
 
 <div class="app">
   <header class="header">
-    <span class="header-title">🧪 Sampling Record</span>
-    <span class="sync-badge" id="sync-badge">
+    <div class="header-logo">
+      <span class="logo-qap">QAP</span>
+      <div class="logo-divider"></div>
+      <div class="logo-text">
+        <span class="logo-sub1">Sampling</span>
+        <span class="logo-sub2">Record</span>
+      </div>
+    </div>
+    <span class="sync-badge">
       <span class="dot" id="sync-dot"></span>
       <span id="sync-txt">กำลังเชื่อมต่อ...</span>
     </span>
@@ -89,7 +96,7 @@
 
   <!-- HISTORY PANE -->
   <div class="pane" id="pane-history">
-    <div class="stats-row" id="stats-row">
+    <div class="stats-row">
       <div class="stat"><div class="stat-n" id="st-total">—</div><div class="stat-l">ทั้งหมด</div></div>
       <div class="stat"><div class="stat-n" id="st-found">—</div><div class="stat-l">ผลค้นหา</div></div>
     </div>
@@ -126,9 +133,7 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script type="module" src="app.js"></script>
 </body>
 </html>

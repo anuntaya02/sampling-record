@@ -131,3 +131,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .pin-error { color:var(--red); font-size:12px; margin-bottom:12px; display:none; }
 .pin-btns { display:flex; gap:10px; }
 .pin-btns button { flex:1; }
+
+/* QAP LOGO */
+.header-logo { display:flex; align-items:center; gap:10px; }
+.logo-qap { font-size:26px; font-weight:800; color:var(--blue); letter-spacing:-1px; line-height:1; }
+.logo-divider { width:2px; height:36px; background:var(--border); border-radius:2px; }
+.logo-text { display:flex; flex-direction:column; justify-content:center; gap:1px; }
+.logo-sub1 { font-size:13px; font-weight:600; color:var(--text); line-height:1.2; }
+.logo-sub2 { font-size:13px; font-weight:600; color:var(--text); line-height:1.2; }
