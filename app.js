@@ -14,13 +14,52 @@ const ADMIN_PIN = "1166";
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 let records = [];
-let pinVerified = false;
 let pendingAction = null;
+
+// ===== VALIDATION =====
+window.validateCode = function(input) {
+  const val = input.value;
+  const hint = document.getElementById('hint-code');
+  input.classList.remove('invalid','valid');
+  hint.className = 'field-hint';
+  if (!val) { hint.textContent = ''; return; }
+  if (!val.startsWith('2')) {
+    input.classList.add('invalid');
+    hint.className = 'field-hint error';
+    hint.textContent = 'Must start with 2';
+    return;
+  }
+  if (val.length !== 12) {
+    input.classList.add('invalid');
+    hint.className = 'field-hint error';
+    hint.textContent = `${val.length}/12 digits`;
+    return;
+  }
+  input.classList.add('valid');
+  hint.className = 'field-hint ok';
+  hint.textContent = '✓ Valid';
+};
+
+window.validateBatch = function(input) {
+  const val = input.value;
+  const hint = document.getElementById('hint-batch');
+  input.classList.remove('invalid','valid');
+  hint.className = 'field-hint';
+  if (!val) { hint.textContent = ''; return; }
+  if (val.length !== 10) {
+    input.classList.add('invalid');
+    hint.className = 'field-hint error';
+    hint.textContent = `${val.length}/10 digits`;
+    return;
+  }
+  input.classList.add('valid');
+  hint.className = 'field-hint ok';
+  hint.textContent = '✓ Valid';
+};
 
 // ===== PIN MODAL =====
 function showPinModal(action) {
   pendingAction = action;
-  pinVerified = false;
   document.getElementById("pin-input").value = "";
   document.getElementById("pin-error").style.display = "none";
   document.getElementById("pin-modal").classList.add("open");
@@ -35,7 +74,6 @@ window.closePinModal = function() {
 window.submitPin = function() {
   const val = document.getElementById("pin-input").value;
   if (val === ADMIN_PIN) {
-    pinVerified = true;
     document.getElementById("pin-modal").classList.remove("open");
     if (pendingAction) pendingAction();
     pendingAction = null;
@@ -67,7 +105,7 @@ function setSync(ok) {
   const dot = document.getElementById("sync-dot");
   const txt = document.getElementById("sync-txt");
   dot.className = "dot " + (ok ? "online" : "error");
-  txt.textContent = ok ? "เชื่อมต่อแล้ว — ข้อมูลแชร์ร่วมกัน" : "ขาดการเชื่อมต่อ";
+  txt.textContent = ok ? "Connected" : "Disconnected";
 }
 
 // ===== TABS =====
@@ -110,10 +148,13 @@ window.saveRecord = async function() {
   const code = document.getElementById("f-code").value.trim();
   const batch = document.getElementById("f-batch").value.trim();
   const name = document.getElementById("f-name").value.trim();
-  if (!date || !code || !batch || !name) { toast("กรุณากรอกข้อมูลที่จำเป็นให้ครบ"); return; }
+
+  if (!date || !code || !batch || !name) { toast("Please fill in all required fields"); return; }
+  if (!code.startsWith('2') || code.length !== 12) { toast("Code must start with 2 and be 12 digits"); return; }
+  if (batch.length !== 10) { toast("Batch No. must be 10 digits"); return; }
 
   const btn = document.querySelector(".btn-primary");
-  btn.textContent = "กำลังบันทึก...";
+  btn.textContent = "Saving...";
   btn.disabled = true;
 
   try {
@@ -122,12 +163,12 @@ window.saveRecord = async function() {
       date, code, batch, name, photos,
       createdAt: new Date().toISOString()
     });
-    toast("บันทึกสำเร็จ ✓");
+    toast("Saved successfully ✓");
     clearForm();
   } catch (err) {
-    toast("เกิดข้อผิดพลาด: " + err.message);
+    toast("Error: " + err.message);
   } finally {
-    btn.textContent = "💾 บันทึก";
+    btn.textContent = "💾 Save";
     btn.disabled = false;
   }
 };
@@ -135,11 +176,28 @@ window.saveRecord = async function() {
 // ===== CLEAR FORM =====
 window.clearForm = function() {
   ["f-date","f-code","f-batch","f-name","d1","d2","d3"].forEach(id => document.getElementById(id).value = "");
+  ["f-code","f-batch"].forEach(id => {
+    document.getElementById(id).classList.remove('valid','invalid');
+  });
+  ["hint-code","hint-batch"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) { el.textContent = ''; el.className = 'field-hint'; }
+  });
   for (let n = 1; n <= 3; n++) {
     const box = document.getElementById("pb" + n);
-    box.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>เลือกรูป</span><input type="file" id="fi${n}" accept="image/*" onchange="previewPhoto(this,'pb${n}','d${n}')">`;
+    box.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>Add Picture</span><input type="file" id="fi${n}" accept="image/*" onchange="previewPhoto(this,'pb${n}','d${n}')">`;
     document.getElementById("fi" + n).style.display = "none";
   }
+};
+
+// ===== TOGGLE ACCORDION =====
+window.toggleRec = function(id) {
+  const body = document.getElementById('body-' + id);
+  const arrow = document.getElementById('arrow-' + id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
 };
 
 // ===== RENDER LIST =====
@@ -157,24 +215,37 @@ window.renderList = function() {
 
   const el = document.getElementById("list-container");
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty">ไม่พบข้อมูล</div>`;
+    el.innerHTML = `<div class="empty">No records found</div>`;
     return;
   }
+
   el.innerHTML = filtered.map(r => `
     <div class="rec">
-      <div class="rec-top">
-        <div>
-          <div class="rec-name">${esc(r.name)}</div>
+      <div class="rec-header" onclick="toggleRec('${r.id}')">
+        <div class="rec-header-left">
+          <div style="font-weight:500;font-size:14px">${esc(r.name)}</div>
           <div class="badges">
             <span class="badge">📅 ${r.date}</span>
             <span class="badge blue">🏷 ${esc(r.code)}</span>
             <span class="badge">📦 ${esc(r.batch)}</span>
-            ${r.photos?.length ? `<span class="badge">🖼 ${r.photos.length} รูป</span>` : ""}
+            ${r.photos?.length ? `<span class="badge">🖼 ${r.photos.length} pic</span>` : ""}
           </div>
         </div>
-        <button class="btn-del" onclick="confirmDelete('${r.id}')" aria-label="ลบ">🗑</button>
+        <div class="rec-header-right">
+          <button class="btn-del" onclick="event.stopPropagation();confirmDelete('${r.id}')" aria-label="Delete">🗑</button>
+          <span class="rec-toggle" id="arrow-${r.id}">▼</span>
+        </div>
       </div>
-      ${r.photos?.length ? `<div class="rec-photos">${r.photos.map(p => `<img src="${p}" alt="photo" onclick="openLightbox('${p}')">`).join("")}</div>` : ""}
+      <div class="rec-body" id="body-${r.id}">
+        <div class="rec-meta">
+          <span><strong>Date:</strong> ${r.date}</span>
+          <span><strong>Code:</strong> ${esc(r.code)}</span>
+          <span><strong>Batch No.:</strong> ${esc(r.batch)}</span>
+          <span><strong>Inspector:</strong> ${esc(r.name)}</span>
+          <span><strong>Recorded:</strong> ${r.createdAt ? new Date(r.createdAt).toLocaleString('en-GB') : '-'}</span>
+        </div>
+        ${r.photos?.length ? `<div class="rec-photos" style="margin-top:10px">${r.photos.map(p => `<img src="${p}" alt="photo" onclick="openLightbox('${p}')">`).join("")}</div>` : '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">No pictures attached</div>'}
+      </div>
     </div>
   `).join("");
 };
@@ -184,9 +255,9 @@ window.confirmDelete = function(id) {
   showPinModal(async () => {
     try {
       await deleteDoc(doc(db, "samples", id));
-      toast("ลบเรียบร้อย");
+      toast("Deleted successfully");
     } catch (err) {
-      toast("เกิดข้อผิดพลาด");
+      toast("Error deleting record");
     }
   });
 };
@@ -200,22 +271,25 @@ window.doExport = async function() {
     const md = !d || r.date === d;
     return mq && md;
   });
-  if (!filtered.length) { toast("ไม่มีข้อมูล"); return; }
+  if (!filtered.length) { toast("No data to export"); return; }
 
   const { utils, writeFile } = await import("https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs");
   const rows = filtered.map(r => ({
-    "Date": r.date, "Code": r.code, "Batch No.": r.batch, "Sampling Name": r.name,
-    "มีรูป Photo 1": r.photos?.[0] ? "มี" : "-",
-    "มีรูป Photo 2": r.photos?.[1] ? "มี" : "-",
-    "มีรูป Photo 3": r.photos?.[2] ? "มี" : "-",
-    "บันทึกเมื่อ": r.createdAt ? new Date(r.createdAt).toLocaleString("th-TH") : "-"
+    "Date": r.date,
+    "Code": r.code,
+    "Batch No.": r.batch,
+    "Inspector": r.name,
+    "Picture 1": r.photos?.[0] ? "Yes" : "-",
+    "Picture 2": r.photos?.[1] ? "Yes" : "-",
+    "Picture 3": r.photos?.[2] ? "Yes" : "-",
+    "Recorded At": r.createdAt ? new Date(r.createdAt).toLocaleString('en-GB') : "-"
   }));
   const ws = utils.json_to_sheet(rows);
-  ws["!cols"] = [{wch:12},{wch:14},{wch:16},{wch:30},{wch:12},{wch:12},{wch:12},{wch:20}];
+  ws["!cols"] = [{wch:12},{wch:14},{wch:14},{wch:20},{wch:10},{wch:10},{wch:10},{wch:20}];
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, "Sampling");
   writeFile(wb, "sampling_records.xlsx");
-  toast("Export สำเร็จ ✓");
+  toast("Export successful ✓");
 };
 
 // ===== LIGHTBOX =====

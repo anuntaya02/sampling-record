@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,7 +22,7 @@
     </div>
     <span class="sync-badge">
       <span class="dot" id="sync-dot"></span>
-      <span id="sync-txt">กำลังเชื่อมต่อ...</span>
+      <span id="sync-txt">Connecting...</span>
     </span>
   </header>
 
@@ -34,24 +34,26 @@
   <!-- ADD PANE -->
   <div class="pane active" id="pane-add">
     <div class="card">
-      <p class="sec-label">ข้อมูลหลัก</p>
+      <p class="sec-label">Main Information</p>
       <div class="grid3">
         <div class="field">
           <label>Date <span class="req">*</span></label>
-          <input type="date" id="f-date" />
+          <input type="date" id="f-date" placeholder="DD/MM/YYYY" />
         </div>
         <div class="field">
           <label>Code <span class="req">*</span></label>
-          <input type="text" id="f-code" placeholder="200xxx000000" />
+          <input type="text" id="f-code" placeholder="200xxx000000" maxlength="12" oninput="validateCode(this)" />
+          <span class="field-hint" id="hint-code"></span>
         </div>
         <div class="field">
           <label>Batch No. <span class="req">*</span></label>
-          <input type="text" id="f-batch" placeholder="22xxxxxxxx" />
+          <input type="text" id="f-batch" placeholder="22xxxxxxxx" maxlength="10" oninput="validateBatch(this)" />
+          <span class="field-hint" id="hint-batch"></span>
         </div>
       </div>
       <div class="field">
         <label>Inspector <span class="req">*</span></label>
-        <input type="text" id="f-name" placeholder="ชื่อผู้ตรวจสอบ" />
+        <input type="text" id="f-name" placeholder="Inspector Name" />
       </div>
     </div>
 
@@ -97,13 +99,19 @@
   <!-- HISTORY PANE -->
   <div class="pane" id="pane-history">
     <div class="stats-row">
-      <div class="stat"><div class="stat-n" id="st-total">—</div><div class="stat-l">ทั้งหมด</div></div>
-      <div class="stat"><div class="stat-n" id="st-found">—</div><div class="stat-l">ผลค้นหา</div></div>
+      <div class="stat"><div class="stat-n" id="st-total">—</div><div class="stat-l">Total</div></div>
+      <div class="stat"><div class="stat-n" id="st-found">—</div><div class="stat-l">Results</div></div>
     </div>
-    <div class="search-row">
-      <input type="text" id="sq" placeholder="ค้นหา Code / Batch / Inspector" oninput="renderList()" />
-      <input type="date" id="sd" oninput="renderList()" />
+
+    <!-- Search Section -->
+    <div class="card" style="margin-bottom:12px">
+      <p class="sec-label">Search</p>
+      <div class="search-row">
+        <input type="text" id="sq" placeholder="Search Code / Batch / Inspector..." oninput="renderList()" />
+        <input type="date" id="sd" oninput="renderList()" />
+      </div>
     </div>
+
     <div class="export-row">
       <button class="btn-outline full-w" onclick="doExport()">📥 Export Excel</button>
     </div>
@@ -128,7 +136,7 @@
 <!-- LIGHTBOX -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <div class="lightbox-inner" onclick="event.stopPropagation()">
-    <img id="lb-img" src="" alt="รูปขยาย" />
+    <img id="lb-img" src="" alt="Picture" />
     <button class="btn-outline" onclick="closeLightbox()" style="margin-top:10px;width:100%">Close</button>
   </div>
 </div>
