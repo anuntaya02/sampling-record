@@ -10,38 +10,70 @@ const firebaseConfig = {
   appId: "1:483858402515:web:15faecde56d7bd9a341826"
 };
 
+// ===== CLOUDINARY CONFIG =====
 const CLOUD_NAME = "dcb3uszd0";
 const UPLOAD_PRESET = "yejmrz4d";
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-const ADMIN_PIN = "1166";
 
+const ADMIN_PIN = "1166";
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 let records = [];
 let pendingAction = null;
 
-// ===== CLOUDINARY UPLOAD =====
+// ===== UPLOAD TO CLOUDINARY =====
 async function uploadToCloudinary(base64data) {
   const blob = await fetch(base64data).then(r => r.blob());
   const formData = new FormData();
   formData.append('file', blob);
   formData.append('upload_preset', UPLOAD_PRESET);
   formData.append('folder', 'qap-sampling');
+
   const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
   if (!res.ok) throw new Error('Cloudinary upload failed');
   const data = await res.json();
   return data.secure_url;
 }
 
-// ===== VALIDATION (Code only - no first digit restriction) =====
+// ===== VALIDATION =====
 window.validateCode = function(input) {
   const val = input.value;
   const hint = document.getElementById('hint-code');
   input.classList.remove('invalid','valid');
   hint.className = 'field-hint';
   if (!val) { hint.textContent = ''; return; }
+  if (!val.startsWith('2')) {
+    input.classList.add('invalid');
+    hint.className = 'field-hint error';
+    hint.textContent = 'Must start with 2';
+    return;
+  }
+  if (val.length !== 12) {
+    input.classList.add('invalid');
+    hint.className = 'field-hint error';
+    hint.textContent = `${val.length}/12 digits`;
+    return;
+  }
+  input.classList.add('valid');
   hint.className = 'field-hint ok';
-  hint.textContent = `${val.length} digits`;
+  hint.textContent = '✓ Valid';
+};
+
+window.validateBatch = function(input) {
+  const val = input.value;
+  const hint = document.getElementById('hint-batch');
+  input.classList.remove('invalid','valid');
+  hint.className = 'field-hint';
+  if (!val) { hint.textContent = ''; return; }
+  if (val.length !== 10) {
+    input.classList.add('invalid');
+    hint.className = 'field-hint error';
+    hint.textContent = `${val.length}/10 digits`;
+    return;
+  }
+  input.classList.add('valid');
+  hint.className = 'field-hint ok';
+  hint.textContent = '✓ Valid';
 };
 
 // ===== PIN MODAL =====
@@ -52,10 +84,12 @@ function showPinModal(action) {
   document.getElementById("pin-modal").classList.add("open");
   setTimeout(() => document.getElementById("pin-input").focus(), 100);
 }
+
 window.closePinModal = function() {
   document.getElementById("pin-modal").classList.remove("open");
   pendingAction = null;
 };
+
 window.submitPin = function() {
   const val = document.getElementById("pin-input").value;
   if (val === ADMIN_PIN) {
@@ -68,7 +102,10 @@ window.submitPin = function() {
     document.getElementById("pin-input").focus();
   }
 };
-window.pinKeydown = function(e) { if (e.key === "Enter") window.submitPin(); };
+
+window.pinKeydown = function(e) {
+  if (e.key === "Enter") window.submitPin();
+};
 
 // ===== REALTIME =====
 function startListener() {
@@ -77,11 +114,17 @@ function startListener() {
     records = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     renderList();
     setSync(true);
-  }, (err) => { console.error(err); setSync(false); });
+  }, (err) => {
+    console.error(err);
+    setSync(false);
+  });
 }
+
 function setSync(ok) {
-  document.getElementById("sync-dot").className = "dot " + (ok ? "online" : "error");
-  document.getElementById("sync-txt").textContent = ok ? "Connected" : "Disconnected";
+  const dot = document.getElementById("sync-dot");
+  const txt = document.getElementById("sync-txt");
+  dot.className = "dot " + (ok ? "online" : "error");
+  txt.textContent = ok ? "Connected" : "Disconnected";
 }
 
 // ===== TABS =====
@@ -124,13 +167,17 @@ window.saveRecord = async function() {
   const code = document.getElementById("f-code").value.trim();
   const batch = document.getElementById("f-batch").value.trim();
   const name = document.getElementById("f-name").value.trim();
+
   if (!date || !code || !batch || !name) { toast("Please fill in all required fields"); return; }
+  if (!code.startsWith('2') || code.length !== 12) { toast("Code must start with 2 and be 12 digits"); return; }
+  if (batch.length !== 10) { toast("Batch No. must be 10 digits"); return; }
 
   const btn = document.querySelector(".btn-primary");
   btn.textContent = "Uploading...";
   btn.disabled = true;
 
   try {
+    // Upload photos to Cloudinary
     const photoURLs = [];
     for (let n = 1; n <= 3; n++) {
       const data = document.getElementById("d" + n).value;
@@ -140,6 +187,7 @@ window.saveRecord = async function() {
         photoURLs.push(url);
       }
     }
+
     btn.textContent = "Saving...";
     await addDoc(collection(db, "samples"), {
       date, code, batch, name,
@@ -160,22 +208,16 @@ window.saveRecord = async function() {
 // ===== CLEAR FORM =====
 window.clearForm = function() {
   ["f-date","f-code","f-batch","f-name","d1","d2","d3"].forEach(id => document.getElementById(id).value = "");
-  document.getElementById("f-code").classList.remove('valid','invalid');
-  const hint = document.getElementById("hint-code");
-  if (hint) { hint.textContent = ''; hint.className = 'field-hint'; }
+  ["f-code","f-batch"].forEach(id => document.getElementById(id).classList.remove('valid','invalid'));
+  ["hint-code","hint-batch"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.className = 'field-hint'; }
+  });
   for (let n = 1; n <= 3; n++) {
     const box = document.getElementById("pb" + n);
     box.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>Add Picture</span><input type="file" id="fi${n}" accept="image/*" onchange="previewPhoto(this,'pb${n}','d${n}')">`;
     document.getElementById("fi" + n).style.display = "none";
   }
-};
-
-// ===== DATE FILTER =====
-window.clearDateFilter = function() {
-  document.getElementById("fd-day").value = "";
-  document.getElementById("fd-month").value = "";
-  document.getElementById("fd-year").value = "";
-  renderList();
 };
 
 // ===== TOGGLE ACCORDION =====
@@ -191,21 +233,11 @@ window.toggleRec = function(id) {
 // ===== RENDER LIST =====
 window.renderList = function() {
   const q = (document.getElementById("sq")?.value || "").toLowerCase();
-  const fDay = document.getElementById("fd-day")?.value || "";
-  const fMonth = document.getElementById("fd-month")?.value || "";
-  const fYear = document.getElementById("fd-year")?.value || "";
-
+  const d = document.getElementById("sd")?.value || "";
   const filtered = records.filter(r => {
     const mq = !q || [r.code, r.batch, r.name].some(v => (v || "").toLowerCase().includes(q));
-    // date format: YYYY-MM-DD
-    const parts = (r.date || "").split("-");
-    const rYear = parts[0] || "";
-    const rMonth = parts[1] || "";
-    const rDay = parts[2] || "";
-    const mDay = !fDay || rDay === fDay;
-    const mMonth = !fMonth || rMonth === fMonth;
-    const mYear = !fYear || rYear === fYear;
-    return mq && mDay && mMonth && mYear;
+    const md = !d || r.date === d;
+    return mq && md;
   });
 
   document.getElementById("st-total").textContent = records.length;
@@ -254,40 +286,41 @@ window.confirmDelete = function(id) {
     try {
       await deleteDoc(doc(db, "samples", id));
       toast("Deleted successfully");
-    } catch (err) { toast("Error deleting record"); }
+    } catch (err) {
+      toast("Error deleting record");
+    }
   });
 };
 
-// ===== EXPORT =====
+// ===== EXPORT WITH CLICKABLE PHOTO LINKS =====
 window.doExport = async function() {
   const q = (document.getElementById("sq")?.value || "").toLowerCase();
-  const fDay = document.getElementById("fd-day")?.value || "";
-  const fMonth = document.getElementById("fd-month")?.value || "";
-  const fYear = document.getElementById("fd-year")?.value || "";
-
+  const d = document.getElementById("sd")?.value || "";
   const filtered = records.filter(r => {
     const mq = !q || [r.code, r.batch, r.name].some(v => (v || "").toLowerCase().includes(q));
-    const parts = (r.date || "").split("-");
-    const mDay = !fDay || (parts[2] || "") === fDay;
-    const mMonth = !fMonth || (parts[1] || "") === fMonth;
-    const mYear = !fYear || (parts[0] || "") === fYear;
-    return mq && mDay && mMonth && mYear;
+    const md = !d || r.date === d;
+    return mq && md;
   });
   if (!filtered.length) { toast("No data to export"); return; }
 
   const { utils, writeFile } = await import("https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs");
-  const ws = utils.aoa_to_sheet([["Date","Code","Batch No.","Inspector","Picture 1","Picture 2","Picture 3","Recorded At"]]);
+
+  const ws = utils.aoa_to_sheet([
+    ["Date","Code","Batch No.","Inspector","Picture 1","Picture 2","Picture 3","Recorded At"]
+  ]);
 
   filtered.forEach((r, i) => {
     const row = i + 2;
-    utils.sheet_add_aoa(ws, [[
+    const rowData = [
       r.date, r.code, r.batch, r.name,
       r.photos?.[0] || "-",
       r.photos?.[1] || "-",
       r.photos?.[2] || "-",
       r.createdAt ? new Date(r.createdAt).toLocaleString('en-GB') : "-"
-    ]], { origin: `A${row}` });
+    ];
+    utils.sheet_add_aoa(ws, [rowData], { origin: `A${row}` });
 
+    // Add hyperlinks for photo columns (E, F, G)
     ['E','F','G'].forEach((col, ci) => {
       const url = r.photos?.[ci];
       if (url) {
@@ -298,10 +331,10 @@ window.doExport = async function() {
     });
   });
 
-  ws["!cols"] = [{wch:12},{wch:16},{wch:14},{wch:20},{wch:12},{wch:12},{wch:12},{wch:22}];
+  ws["!cols"] = [{wch:12},{wch:14},{wch:14},{wch:20},{wch:12},{wch:12},{wch:12},{wch:22}];
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, "Sampling");
-  writeFile(wb, "sampling_records_v2.xlsx");
+  writeFile(wb, "sampling_records.xlsx");
   toast("Export successful ✓ — Photos are clickable links");
 };
 
@@ -320,6 +353,7 @@ function toast(msg) {
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 2800);
 }
+
 function esc(s) {
   return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }

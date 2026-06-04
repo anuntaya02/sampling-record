@@ -42,12 +42,13 @@
         </div>
         <div class="field">
           <label>Code <span class="req">*</span></label>
-          <input type="text" id="f-code" placeholder="200xxx000000" maxlength="20" oninput="validateCode(this)" />
+          <input type="text" id="f-code" placeholder="200xxx000000" maxlength="12" oninput="validateCode(this)" />
           <span class="field-hint" id="hint-code"></span>
         </div>
         <div class="field">
           <label>Batch No. <span class="req">*</span></label>
-          <input type="text" id="f-batch" placeholder="22xxxxxxxx" />
+          <input type="text" id="f-batch" placeholder="22xxxxxxxx" maxlength="10" oninput="validateBatch(this)" />
+          <span class="field-hint" id="hint-batch"></span>
         </div>
       </div>
       <div class="field">
@@ -105,42 +106,9 @@
     <!-- Search Section -->
     <div class="card" style="margin-bottom:12px">
       <p class="sec-label">Search</p>
-      <div class="search-row" style="margin-bottom:10px">
+      <div class="search-row">
         <input type="text" id="sq" placeholder="Search Code / Batch / Inspector..." oninput="renderList()" />
-      </div>
-      <!-- Date Filter: Day / Month / Year -->
-      <div class="date-filter-row">
-        <div class="date-filter-field">
-          <label>Day</label>
-          <select id="fd-day" onchange="renderList()">
-            <option value="">All</option>
-            ${Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${String(i+1).padStart(2,'0')}</option>`).join('')}
-          </select>
-        </div>
-        <div class="date-filter-field">
-          <label>Month</label>
-          <select id="fd-month" onchange="renderList()">
-            <option value="">All</option>
-            <option value="01">Jan</option><option value="02">Feb</option>
-            <option value="03">Mar</option><option value="04">Apr</option>
-            <option value="05">May</option><option value="06">Jun</option>
-            <option value="07">Jul</option><option value="08">Aug</option>
-            <option value="09">Sep</option><option value="10">Oct</option>
-            <option value="11">Nov</option><option value="12">Dec</option>
-          </select>
-        </div>
-        <div class="date-filter-field">
-          <label>Year</label>
-          <select id="fd-year" onchange="renderList()">
-            <option value="">All</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-            <option value="2028">2028</option>
-          </select>
-        </div>
-        <button class="btn-outline" style="align-self:flex-end;padding:8px 12px;font-size:12px" onclick="clearDateFilter()">Clear</button>
+        <input type="date" id="sd" oninput="renderList()" />
       </div>
     </div>
 
