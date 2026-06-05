@@ -10,30 +10,11 @@ const firebaseConfig = {
   appId: "1:483858402515:web:15faecde56d7bd9a341826"
 };
 
-// ===== CLOUDINARY CONFIG =====
-const CLOUD_NAME = "dcb3uszd0";
-const UPLOAD_PRESET = "yejmrz4d";
-const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-
 const ADMIN_PIN = "1166";
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 let records = [];
 let pendingAction = null;
-
-// ===== UPLOAD TO CLOUDINARY =====
-async function uploadToCloudinary(base64data) {
-  const blob = await fetch(base64data).then(r => r.blob());
-  const formData = new FormData();
-  formData.append('file', blob);
-  formData.append('upload_preset', UPLOAD_PRESET);
-  formData.append('folder', 'qap-sampling');
-
-  const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
-  if (!res.ok) throw new Error('Cloudinary upload failed');
-  const data = await res.json();
-  return data.secure_url;
-}
 
 // ===== VALIDATION =====
 window.validateCode = function(input) {
@@ -173,31 +154,18 @@ window.saveRecord = async function() {
   if (batch.length !== 10) { toast("Batch No. must be 10 digits"); return; }
 
   const btn = document.querySelector(".btn-primary");
-  btn.textContent = "Uploading...";
+  btn.textContent = "Saving...";
   btn.disabled = true;
 
   try {
-    // Upload photos to Cloudinary
-    const photoURLs = [];
-    for (let n = 1; n <= 3; n++) {
-      const data = document.getElementById("d" + n).value;
-      if (data) {
-        btn.textContent = `Uploading photo ${n}...`;
-        const url = await uploadToCloudinary(data);
-        photoURLs.push(url);
-      }
-    }
-
-    btn.textContent = "Saving...";
+    const photos = ['d1','d2','d3'].map(id => document.getElementById(id).value).filter(Boolean);
     await addDoc(collection(db, "samples"), {
-      date, code, batch, name,
-      photos: photoURLs,
+      date, code, batch, name, photos,
       createdAt: new Date().toISOString()
     });
     toast("Saved successfully ✓");
     clearForm();
   } catch (err) {
-    console.error(err);
     toast("Error: " + err.message);
   } finally {
     btn.textContent = "💾 Save";
@@ -208,10 +176,12 @@ window.saveRecord = async function() {
 // ===== CLEAR FORM =====
 window.clearForm = function() {
   ["f-date","f-code","f-batch","f-name","d1","d2","d3"].forEach(id => document.getElementById(id).value = "");
-  ["f-code","f-batch"].forEach(id => document.getElementById(id).classList.remove('valid','invalid'));
+  ["f-code","f-batch"].forEach(id => {
+    document.getElementById(id).classList.remove('valid','invalid');
+  });
   ["hint-code","hint-batch"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.textContent = ''; el.className = 'field-hint'; }
+    if(el) { el.textContent = ''; el.className = 'field-hint'; }
   });
   for (let n = 1; n <= 3; n++) {
     const box = document.getElementById("pb" + n);
@@ -292,7 +262,7 @@ window.confirmDelete = function(id) {
   });
 };
 
-// ===== EXPORT WITH CLICKABLE PHOTO LINKS =====
+// ===== EXPORT =====
 window.doExport = async function() {
   const q = (document.getElementById("sq")?.value || "").toLowerCase();
   const d = document.getElementById("sd")?.value || "";
@@ -304,38 +274,22 @@ window.doExport = async function() {
   if (!filtered.length) { toast("No data to export"); return; }
 
   const { utils, writeFile } = await import("https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs");
-
-  const ws = utils.aoa_to_sheet([
-    ["Date","Code","Batch No.","Inspector","Picture 1","Picture 2","Picture 3","Recorded At"]
-  ]);
-
-  filtered.forEach((r, i) => {
-    const row = i + 2;
-    const rowData = [
-      r.date, r.code, r.batch, r.name,
-      r.photos?.[0] || "-",
-      r.photos?.[1] || "-",
-      r.photos?.[2] || "-",
-      r.createdAt ? new Date(r.createdAt).toLocaleString('en-GB') : "-"
-    ];
-    utils.sheet_add_aoa(ws, [rowData], { origin: `A${row}` });
-
-    // Add hyperlinks for photo columns (E, F, G)
-    ['E','F','G'].forEach((col, ci) => {
-      const url = r.photos?.[ci];
-      if (url) {
-        const cellRef = `${col}${row}`;
-        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: url };
-        ws[cellRef].l = { Target: url, Tooltip: `Click to view Picture ${ci+1}` };
-      }
-    });
-  });
-
-  ws["!cols"] = [{wch:12},{wch:14},{wch:14},{wch:20},{wch:12},{wch:12},{wch:12},{wch:22}];
+  const rows = filtered.map(r => ({
+    "Date": r.date,
+    "Code": r.code,
+    "Batch No.": r.batch,
+    "Inspector": r.name,
+    "Picture 1": r.photos?.[0] ? "Yes" : "-",
+    "Picture 2": r.photos?.[1] ? "Yes" : "-",
+    "Picture 3": r.photos?.[2] ? "Yes" : "-",
+    "Recorded At": r.createdAt ? new Date(r.createdAt).toLocaleString('en-GB') : "-"
+  }));
+  const ws = utils.json_to_sheet(rows);
+  ws["!cols"] = [{wch:12},{wch:14},{wch:14},{wch:20},{wch:10},{wch:10},{wch:10},{wch:20}];
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, "Sampling");
   writeFile(wb, "sampling_records.xlsx");
-  toast("Export successful ✓ — Photos are clickable links");
+  toast("Export successful ✓");
 };
 
 // ===== LIGHTBOX =====
