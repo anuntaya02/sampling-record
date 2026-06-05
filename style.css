@@ -164,3 +164,10 @@ input.valid { border-color: var(--green) !important; }
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* v2.0.0 Date Filter */
+.date-filter-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+.date-filter-field { display:flex; flex-direction:column; gap:4px; flex:1; min-width:70px; }
+.date-filter-field label { font-size:11px; color:var(--text-muted); }
+.date-filter-field select { padding:8px 6px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; background:var(--bg); color:var(--text); outline:none; }
+.date-filter-field select:focus { border-color:var(--blue); }
